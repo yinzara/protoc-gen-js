@@ -1,7 +1,7 @@
-# protoc-gen-grpc-web binary for npm
+# protoc-gen-js binary for npm
 
-This package provides the official [grpc-web protoc plugin](https://github.com/grpc/grpc-web#code-generator-plugin), downloaded from [grpc-web releases](https://github.com/grpc/grpc-web/releases).
+This package provides the official [js protoc plugin](https://github.com/protocolbuffers/protobuf-javascript), downloaded from [protobuf-javascript releases](https://github.com/protocolbuffers/protobuf-javascript/releases).
 
 ## Credits
 
-Forked from [zaucy-protoc-gen-grpc-web](https://www.npmjs.com/package/zaucy-protoc-gen-grpc-web).
+Forked from [hronro-protoc-gen-grpc-web](https://www.npmjs.com/package/protoc-gen-grpc-web).

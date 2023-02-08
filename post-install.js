@@ -1,43 +1,54 @@
 const path = require('path');
+const AdmZip = require('adm-zip');
 
-const fs = require('fs-extra');
+const fs = require('fs');
 const download = require('download');
-const PLUGIN = require("./");
+const PLUGIN = require('./');
 
-const VERSION = '1.4.1';
-const DL_PREFIX = 'https://github.com/grpc/grpc-web/releases/download/';
-const BIN_DIR = path.resolve(__dirname, "bin");
+const VERSION = '3.21.2';
+const DL_PREFIX = 'https://github.com/protocolbuffers/protobuf-javascript/releases/download/v';
+const BIN_DIR = path.resolve(__dirname, 'bin');
 const EXT = process.platform === 'win32' ? '.exe' : '';
-const PLATFORM_NAME = process.platform === 'win32' ? 'windows' : process.platform;
-const ARCH = process.arch === 'arm64' ? 'aarch64' : 'x86_64';
+const PLATFORM_NAME = process.platform === 'win32' ? '' : process.platform === 'darwin' ? 'osx-' : 'linux-';
+const ARCH = process.platform === 'win32' ? process.arch === 'ia32' ? 'win32' : 'win64' :
+            process.arch === 'ppc64' ? 'ppcle_64' :
+            process.arch === 'arm64' ? 'aarch_64' :
+            process.arch === 's390x' ? 's390_64' :
+            process.arch === 'ia32' ? 'x86_32' : 'x86_64';
 
 async function run() {
-  if (process.arch !== 'x64' && process.arch !== 'arm64') {
+  if (process.arch === 'ppc' || process.arch === 'arm' || process.arch === 'mips' || process.arch === 'mipsel' || process.arch === 's390') {
     throw new Error(
-      `Unsupported arch: only support x86_64 and arm64, but you're using ${process.arch}`
+      `Unsupported arch: ${process.arch}`
     );
   }
 
-  await fs.ensureDir(BIN_DIR);
-  const execFilename = `protoc-gen-grpc-web-${VERSION}-${PLATFORM_NAME}-${ARCH}${EXT}`;
+  if (!fs.existsSync(BIN_DIR))
+    fs.mkdirSync(BIN_DIR)
+  const zipFilename = `protobuf-javascript-${VERSION}-${PLATFORM_NAME}${ARCH}.zip`;
 
-  const downloadUrl = DL_PREFIX + VERSION + '/' + execFilename;
+  const downloadUrl = DL_PREFIX + VERSION + '/' + zipFilename;
 
-  console.log("Downloading", downloadUrl);
+  console.log('Downloading', downloadUrl);
   const buffer = await download(downloadUrl).catch(err => {
     console.error(err.message);
     process.exit(1);
   });
 
-  const pluginStream = fs.createWriteStream(PLUGIN);
-  pluginStream.write(buffer);
-  pluginStream.end(() => {
-    fs.chmodSync(PLUGIN, '0755');
-  });
+  const exeFilename = `bin/protoc-gen-js${EXT}`;
+  const zipFile = new AdmZip(buffer);
+  zipFile.extractEntryTo(
+    exeFilename,
+    path.dirname(PLUGIN),
+    false,
+    true,
+    false,
+    path.basename(PLUGIN));
+  fs.chmodSync(PLUGIN, '0755');
 }
 
-try {
-  run();
-} catch (error) {
-  throw error;
-}
+run().catch(e => {
+  console.error(e)
+  process.exit(1)
+});
+

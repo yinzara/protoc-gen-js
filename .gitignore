@@ -40,7 +40,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-package-lock.json*
 
 # Editor directories and files
 #
@@ -52,4 +51,4 @@ package-lock.json*
 *.sln
 
 # Downloaded binaries
-bin/protoc-gen-grpc-web*
+bin/protoc-gen-js*

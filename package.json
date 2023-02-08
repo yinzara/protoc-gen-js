@@ -1,23 +1,28 @@
 {
-  "name": "protoc-gen-grpc-web",
-  "version": "1.4.1",
-  "description": "A protoc-gen-grpc-web binary for npm.",
+  "name": "protoc-gen-js",
+  "version": "0.0.1",
+  "description": "A protoc-gen-js binary for npm.",
   "main": "index.js",
   "bin": {
-    "protoc-gen-grpc-web": "cli.js"
+    "protoc-gen-js": "cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/foisonocean/protoc-gen-grpc-web-npm"
+    "url": "https://github.com/yinzara/protoc-gen-js"
   },
-  "author": "foisonocean <hronro@gmail.com>",
+  "author": "Matt Vance <yinzara@gmail.com>",
   "license": "MIT",
   "private": false,
   "scripts": {
     "postinstall": "node ./post-install.js"
   },
   "dependencies": {
-    "download": "^8.0.0",
-    "fs-extra": "^9.0.1"
+    "adm-zip": "^0.5.10",
+    "download": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.0",
+    "@types/download": "^8.0.2",
+    "@types/node": "^18.13.0"
   }
 }
