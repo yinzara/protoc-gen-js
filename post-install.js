@@ -4,8 +4,8 @@ const AdmZip = require('adm-zip');
 const fs = require('fs');
 const download = require('download');
 const PLUGIN = require('./');
+const { version } = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8')); // read the version from the package.json
 
-const VERSION = '3.21.2';
 const DL_PREFIX = 'https://github.com/protocolbuffers/protobuf-javascript/releases/download/v';
 const BIN_DIR = path.resolve(__dirname, 'bin');
 const EXT = process.platform === 'win32' ? '.exe' : '';
@@ -25,9 +25,9 @@ async function run() {
 
   if (!fs.existsSync(BIN_DIR))
     fs.mkdirSync(BIN_DIR)
-  const zipFilename = `protobuf-javascript-${VERSION}-${PLATFORM_NAME}${ARCH}.zip`;
+  const zipFilename = `protobuf-javascript-${version}-${PLATFORM_NAME}${ARCH}.zip`;
 
-  const downloadUrl = DL_PREFIX + VERSION + '/' + zipFilename;
+  const downloadUrl = DL_PREFIX + version + '/' + zipFilename;
 
   console.log('Downloading', downloadUrl);
   const buffer = await download(downloadUrl).catch(err => {

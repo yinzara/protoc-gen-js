@@ -15,7 +15,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: npm ci
-      - uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
