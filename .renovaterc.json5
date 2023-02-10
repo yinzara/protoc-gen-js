@@ -8,16 +8,17 @@
   "packageRules": [
     {
       "groupName": "google-protobuf",
-      "automerge": true,
+      "automerge": true, // automerge changes as we want to this to managed automatically
       "matchPackagePatterns": ["google-protobuf"],
       "postUpgradeTasks": {
+        // set the package version to the version of google-protobuf
         "commands": [
-          "npm version $(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')",
-          "git tag -f v$(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')"
+          "npm version $(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')"
         ],
         "fileFilters": [
           "package.json"
         ],
+        // only execute once per branch
         "executionMode": "branch"
       }
     }

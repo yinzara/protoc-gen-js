@@ -52,3 +52,4 @@ pnpm-debug.log*
 
 # Downloaded binaries
 bin/protoc-gen-js*
+test/*.js

@@ -14,10 +14,11 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "postinstall": "node post-install.js"
+    "postinstall": "node post-install.js",
+    "postpublish": "git tag -f v$(cat package.json | grep -m 1 version | sed 's/[^.0-9]//g') && git push --tags"
   },
   "dependencies": {
-    "adm-zip": "^0.5.10"
+    "adm-zip": "0.5.10"
   },
   "devDependencies": {
     "google-protobuf": "3.21.2"
