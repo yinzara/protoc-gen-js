@@ -1,5 +1,8 @@
 name: Publish Package to npmjs
-on: push
+on:
+  push:
+    branches:
+    - master
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -15,7 +18,13 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Check for protoc-gen-js
+        run: |
+          if [ ! -f ./bin/protoc-gen-js ]; then
+            echo "File not found: bin/protoc-gen-js"
+            exit 1
+          fi
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
       - run: echo "🍏 This job's status is ${{ job.status }}."

@@ -1,0 +1,25 @@
+{
+  "onboarding": false,
+  "requireConfig": false,
+  "branchPrefix": "renovate/",
+  "baseBranches": ["master"],
+  "prCreation": "not-pending",
+  "branchTopic": "{{{depNameSanitized}}}-{{{newMajor}}}{{#if isPatch}}-{{{newMinor}}}{{/if}}-x{{#if isLockfileUpdate}}-lockfile{{/if}}",
+  "packageRules": [
+    {
+      "groupName": "google-protobuf",
+      "automerge": true,
+      "matchPackagePatterns": ["google-protobuf"],
+      "postUpgradeTasks": {
+        "commands": [
+          "npm version $(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')",
+          "git tag -f v$(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')"
+        ],
+        "fileFilters": [
+          "package.json"
+        ],
+        "executionMode": "branch"
+      }
+    }
+  ]
+}

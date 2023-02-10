@@ -14,15 +14,12 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "postinstall": "node ./post-install.js"
+    "postinstall": "node post-install.js"
   },
   "dependencies": {
-    "adm-zip": "^0.5.10",
-    "download": "^8.0.0"
+    "adm-zip": "^0.5.10"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.0",
-    "@types/download": "^8.0.2",
-    "@types/node": "^18.13.0"
+    "google-protobuf": "3.21.2"
   }
 }
