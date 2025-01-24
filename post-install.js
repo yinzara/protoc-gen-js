@@ -73,16 +73,29 @@ async function run() {
       .on("error", reject);
   });
 
-  const exeFilename = `bin/protoc-gen-js${EXT}`;
+  let exeFilename = `bin/protoc-gen-js${EXT}`;
   const zipFile = new AdmZip(buffer);
-  zipFile.extractEntryTo(
-    exeFilename,
-    path.dirname(PLUGIN),
-    false,
-    true,
-    false,
-    path.basename(PLUGIN)
-  );
+  try {
+    zipFile.extractEntryTo(
+      exeFilename,
+      path.dirname(PLUGIN),
+      false,
+      true,
+      false,
+      path.basename(PLUGIN)
+    );
+  } catch (error) {
+    // 3.21.4 moved the file to be located in a nested folder named for the version in windows
+    execFileName = `protobuf-javascript-${version}-${PLATFORM_NAME}${ARCH}/bin/protoc-gen-js${EXT}`
+    zipFile.extractEntryTo(
+      exeFilename,
+      path.dirname(PLUGIN),
+      false,
+      true,
+      false,
+      path.basename(PLUGIN)
+    );
+  }
   fs.chmodSync(PLUGIN, "0755");
 }
 
