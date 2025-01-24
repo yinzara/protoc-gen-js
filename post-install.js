@@ -4,10 +4,13 @@ const https = require("https");
 const path = require("path");
 const PLUGIN = require("./");
 
-const { version } = JSON.parse(
+let { version } = JSON.parse(
   fs.readFileSync(path.join(__dirname, "package.json"), "utf-8")
 ); // read the version from the package.json
 
+if (version.includes('-')) {
+  version = version.substring(0, version.indexOf('-'))
+}
 const DL_PREFIX =
   "https://github.com/protocolbuffers/protobuf-javascript/releases/download/v";
 const BIN_DIR = path.resolve(__dirname, "bin");
@@ -86,7 +89,7 @@ async function run() {
     );
   } catch (error) {
     // 3.21.4 moved the file to be located in a nested folder named for the version in windows
-    execFileName = `protobuf-javascript-${version}-${PLATFORM_NAME}${ARCH}/bin/protoc-gen-js${EXT}`
+    exeFilename = `protobuf-javascript-${version}-${PLATFORM_NAME}${ARCH}/bin/protoc-gen-js${EXT}`
     zipFile.extractEntryTo(
       exeFilename,
       path.dirname(PLUGIN),

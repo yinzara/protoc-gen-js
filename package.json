@@ -1,6 +1,6 @@
 {
   "name": "protoc-gen-js",
-  "version": "3.21.4",
+  "version": "3.21.4-3",
   "description": "A protoc-gen-js binary for npm.",
   "main": "index.js",
   "bin": {
