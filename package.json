@@ -1,6 +1,6 @@
 {
   "name": "protoc-gen-js",
-  "version": "3.21.4-4",
+  "version": "3.21.3",
   "description": "A protoc-gen-js binary for npm.",
   "main": "index.js",
   "bin": {
@@ -21,6 +21,6 @@
     "adm-zip": "0.5.10"
   },
   "devDependencies": {
-    "google-protobuf": "3.21.4"
+    "google-protobuf": "3.21.3"
   }
 }
