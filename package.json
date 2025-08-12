@@ -18,7 +18,8 @@
     "postpublish": "git tag -f v$(cat package.json | grep -m 1 version | sed 's/[^.0-9]//g') && git push --tags"
   },
   "dependencies": {
-    "adm-zip": "0.5.10"
+    "adm-zip": "0.5.10",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "google-protobuf": "3.21.4"

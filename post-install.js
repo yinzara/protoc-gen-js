@@ -1,7 +1,9 @@
 const AdmZip = require("adm-zip");
 const fs = require("fs");
-const https = require("https");
+const fetch = require("node-fetch");
 const path = require("path");
+const { pipeline } = require("stream");
+const { promisify } = require("util");
 const PLUGIN = require("./");
 
 let { version } = JSON.parse(
@@ -36,23 +38,6 @@ const ARCH =
     ? "x86_32"
     : "x86_64";
 
-const resHandler = (resolve, reject, res) => {
-  if (res.statusCode === 302) {
-    https
-      .get(res.headers.location, (res2) => resHandler(resolve, reject, res2))
-      .on("error", reject);
-  } else {
-    const data = [];
-    res
-      .on("data", (chunk) => {
-        data.push(chunk);
-      })
-      .on("end", () => {
-        resolve(Buffer.concat(data));
-      });
-  }
-};
-
 async function run() {
   if (
     process.arch === "ppc" ||
@@ -70,14 +55,17 @@ async function run() {
   const downloadUrl = DL_PREFIX + version + "/" + zipFilename;
 
   console.log("Downloading", downloadUrl);
-  const buffer = await new Promise((resolve, reject) => {
-    https
-      .get(downloadUrl, (res) => resHandler(resolve, reject, res))
-      .on("error", reject);
-  });
+  const res = await fetch(downloadUrl);
+  if (!res.ok) {
+    throw new Error(`Download failed: ${res.statusText}`);
+  }
 
   let exeFilename = `bin/protoc-gen-js${EXT}`;
-  const zipFile = new AdmZip(buffer);
+
+  const tmpZipPath = path.join(__dirname, zipFilename + ".tmp");
+  const streamPipeline = promisify(pipeline);
+  await streamPipeline(res.body, fs.createWriteStream(tmpZipPath));
+  const zipFile = new AdmZip(tmpZipPath);
   try {
     zipFile.extractEntryTo(
       exeFilename,
@@ -99,6 +87,7 @@ async function run() {
       path.basename(PLUGIN)
     );
   }
+  fs.unlinkSync(tmpZipPath);
   fs.chmodSync(PLUGIN, "0755");
 }
 
