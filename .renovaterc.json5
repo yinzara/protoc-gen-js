@@ -44,14 +44,10 @@
   "packageRules": [
     {
       // Keep the package version and the google-protobuf devDependency in
-      // lockstep in one PR. Auto-merge is HELD for now: protobuf-javascript
-      // v4.0.1 shipped without its win64 archive, so protoc-gen-js cannot
-      // release 4.0.1, and we do not want npm to jump 4.0.0 -> 4.0.2 out of
-      // order. Merge the google-protobuf PR by hand once the ordering is
-      // resolved, or set "automerge" back to true to resume auto-releases.
+      // lockstep, in one automerged PR, so releases track upstream automatically.
       "groupName": "google-protobuf",
       "matchPackageNames": ["google-protobuf"],
-      "automerge": false
+      "automerge": true
     },
     {
       // Never even open a major-bump PR for undici or fflate while the engine
