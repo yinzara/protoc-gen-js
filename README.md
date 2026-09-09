@@ -22,6 +22,40 @@ On install, a `postinstall` script downloads the matching `protoc-gen-js`
 binary for the current platform and architecture from the upstream
 protobuf-javascript release.
 
+## Allowing the install script (npm 11.16+ / npm 12+)
+
+The `postinstall` script is how the binary gets onto disk, so it has to be
+allowed to run. Recent npm versions gate dependency lifecycle scripts behind an
+`allowScripts` allowlist in your `package.json`:
+
+- **npm 11.16 – 11.x** – advisory only: the script still runs, but `npm install`
+  ends with a summary listing `protoc-gen-js` as unreviewed. Record the approval
+  to silence it:
+
+  ```sh
+  npm approve-scripts protoc-gen-js
+  # equivalently, on npm 11.19+:  npm install-scripts approve protoc-gen-js
+  ```
+
+- **npm 12+** – enforced: unapproved scripts are **skipped**, so the binary is
+  never downloaded and the plugin will not work. Approve it and then run the
+  script:
+
+  ```sh
+  npm install-scripts approve protoc-gen-js
+  npm rebuild protoc-gen-js        # or just re-run `npm install`
+  ```
+
+`npm install-scripts ls` shows the current state; `approve --all` allows every
+dependency. If you install with `--ignore-scripts`, the same `npm rebuild
+protoc-gen-js` step is needed afterwards.
+
+Other package managers:
+
+- **pnpm** – add `protoc-gen-js` to `pnpm.onlyBuiltDependencies` in
+  `package.json`, or run `pnpm approve-builds`.
+- **Yarn** (Berry) – set `dependenciesMeta["protoc-gen-js"].built = true`.
+
 # Programmatic use
 
 The package's main export is the absolute path to the downloaded binary, so it
