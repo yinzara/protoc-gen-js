@@ -7,9 +7,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
-      - name: Self-hosted Renovate
-        uses: renovatebot/github-action@v41.0.3
+        uses: actions/checkout@v7
+
+      - name: Generate short-lived installation token
+        id: generate_token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+
+      - name: Run Self-hosted Renovate
+        uses: renovatebot/github-action@v46.2.6
         with:
           configurationFile: .renovaterc.json5
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}
+

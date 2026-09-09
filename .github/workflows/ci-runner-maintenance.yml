@@ -1,0 +1,101 @@
+name: CI runner maintenance
+
+# Once a month, ask Gemini to check whether any GitHub-hosted runner label in
+# publish.yml is deprecated or removed and, if so, open a PR applying the fix
+# from .github/ci-runner-maintenance.md. Renovate handles plain label bumps;
+# this covers the suffixed labels (-intel, -arm) and the structural
+# test-native -> test-cross demotion that Renovate cannot do.
+#
+# Requires a GEMINI_API_KEY secret (Google AI Studio; free tier is fine).
+#
+# The PR is opened with the default GITHUB_TOKEN, which does not trigger the
+# "Test and Publish" workflow via `pull_request`. The job instead dispatches
+# that workflow onto the PR branch (workflow_dispatch IS allowed from
+# GITHUB_TOKEN) and enables GitHub native auto-merge, so the PR merges itself
+# once the required "all tests pass" check is green - and does nothing if it
+# is not.
+on:
+  schedule:
+    - cron: '0 6 1 * *'   # 06:00 UTC on the 1st of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: ci-runner-maintenance
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install deps (so post-install.js can be run for verification)
+        run: npm ci --ignore-scripts
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Ask Gemini to check and, if needed, fix runner labels
+        uses: google-github-actions/run-gemini-cli@v0.1.22
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: gemini-2.5-flash
+          settings: |
+            {
+              "tools": {
+                "core": ["run_shell_command", "read_file", "read_many_files", "write_file", "replace", "web_fetch"]
+              }
+            }
+          prompt: |-
+            You maintain the CI runner labels AND this workflow's own Gemini
+            model pin for this repository.
+
+            1. Read .github/ci-runner-maintenance.md and follow it as the
+               authoritative procedure. Also read .github/workflows/publish.yml
+               and .github/workflows/ci-runner-maintenance.yml.
+            2. Runner labels: decide whether any GitHub-hosted runner label used
+               in publish.yml (in strategy.matrix.os lists, matrix.include rows,
+               or runs-on:) is deprecated or has been removed. Use `gh` to
+               inspect recent runs of "Test and Publish" for jobs that failed to
+               start, and web_fetch on
+               https://github.com/actions/runner-images releases for deprecation
+               notices. Be conservative: a transient outage is not a removal.
+            3. Gemini model pin: check whether the `gemini_model` value in
+               .github/workflows/ci-runner-maintenance.yml is still a current,
+               supported model on the Gemini API free tier
+               (web_fetch https://ai.google.dev/gemini-api/docs/models). If it
+               is deprecated or removed, change that single value to the newest
+               stable *flash* model (flash keeps this job inside free-tier
+               quota - do not switch to a pro/ultra model).
+            4. If nothing needs changing, print "no change needed" and exit
+               without creating a branch, commit, or PR.
+            5. If a change is needed, apply the smallest fix on a new branch
+               named ci/runner-maintenance-<YYYY-MM-DD>. For a runner-label
+               change, verify locally exactly as the playbook says (for a
+               demoted target: `PROTOC_GEN_JS_PLATFORM=<p>
+               PROTOC_GEN_JS_ARCH=<a> node post-install.js` then
+               `file bin/protoc-gen-js`, matching the `expect` regex). Commit
+               and push the branch, then open one pull request against `main`
+               with `gh pr create`, explaining what changed and why. Do not
+               modify `main` directly. Do not reduce test coverage - a target
+               may only move between matrices, never be dropped. Do not stage
+               or commit `.gemini/`, `bin/`, `node_modules/` or generated
+               `*_pb.js`. Do not add any AI/assistant session links to the
+               commit message or PR body.
+            6. Kick CI for the PR and let it merge itself on green:
+               `gh workflow run "Test and Publish" --ref <branch>` then
+               `gh pr merge --squash --auto <pr-number>`. Then stop - do not
+               merge manually, do not wait; GitHub merges the PR once the
+               required "all tests pass" check succeeds, or leaves it open if
+               it fails.

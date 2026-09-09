@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("node:path");
 const BIN_DIR = path.resolve(__dirname, "bin");
 const EXT = process.platform === "win32" ? ".exe" : "";
 
