@@ -1,6 +1,6 @@
 {
   "branchPrefix": "renovate/",
-  "baseBranches": ["main"],
+  "baseBranchPatterns": ["main"],
   "branchTopic": "{{{depNameSanitized}}}-{{{newMajor}}}{{#if isPatch}}-{{{newMinor}}}{{/if}}-x{{#if isLockfileUpdate}}-lockfile{{/if}}",
   // Every update automerges once branch protection's "all tests pass" check is
   // green (GitHub native auto-merge, squash). The full Test and Publish matrix
@@ -61,11 +61,17 @@
       "enabled": false
     },
     {
-      // Pin @types/node to the major that matches the engines floor (Node 18).
-      // Newer majors describe APIs that do not exist on the oldest supported
-      // runtime. Bump only when the Node floor moves.
+      // Never touch @types/node at all. It is dev-only editor sugar and any
+      // update only ever moves it ahead of the oldest supported runtime; there
+      // is no version of it we want Renovate to propose.
       "matchPackageNames": ["@types/node"],
-      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      // Never touch the "engines" constraint. The Node floor is a deliberate
+      // policy decision (it gates the whole fetch / proxy design), not a
+      // dependency to bump.
+      "matchDepTypes": ["engines"],
       "enabled": false
     }
   ]
