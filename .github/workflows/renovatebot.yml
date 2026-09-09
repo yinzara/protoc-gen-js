@@ -24,4 +24,7 @@ jobs:
           token: ${{ steps.generate_token.outputs.token }}
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # Global-only options (rejected inside .renovaterc.json5): this repo
+          # already carries a Renovate config, so skip onboarding entirely.
+          RENOVATE_ONBOARDING: 'false'
 
