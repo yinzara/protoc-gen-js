@@ -1,6 +1,6 @@
 {
   "branchPrefix": "renovate/",
-  "baseBranches": ["main"],
+  "baseBranchPatterns": ["main"],
   "branchTopic": "{{{depNameSanitized}}}-{{{newMajor}}}{{#if isPatch}}-{{{newMinor}}}{{/if}}-x{{#if isLockfileUpdate}}-lockfile{{/if}}",
   // Every update automerges once branch protection's "all tests pass" check is
   // green (GitHub native auto-merge, squash). The full Test and Publish matrix
