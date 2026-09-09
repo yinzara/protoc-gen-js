@@ -1,13 +1,12 @@
 {
-  "onboarding": false,
-  "requireConfig": false,
   "branchPrefix": "renovate/",
   "baseBranches": ["main"],
-  "prCreation": "not-pending",
   "branchTopic": "{{{depNameSanitized}}}-{{{newMajor}}}{{#if isPatch}}-{{{newMinor}}}{{/if}}-x{{#if isLockfileUpdate}}-lockfile{{/if}}",
   // Every update automerges once branch protection's "all tests pass" check is
   // green (GitHub native auto-merge, squash). The full Test and Publish matrix
-  // is the gate; nothing merges red.
+  // is the gate; nothing merges red. PRs are opened immediately (Renovate's
+  // default) - our matrix only runs on `pull_request`, so waiting on branch
+  // status would deadlock.
   "automerge": true,
   "platformAutomerge": true,
   "automergeStrategy": "squash",
@@ -58,6 +57,14 @@
       // (including security fixes) still flow and automerge. Re-enable only when
       // the Node floor moves to 20+.
       "matchPackageNames": ["undici", "fflate"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      // Pin @types/node to the major that matches the engines floor (Node 18).
+      // Newer majors describe APIs that do not exist on the oldest supported
+      // runtime. Bump only when the Node floor moves.
+      "matchPackageNames": ["@types/node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     }
