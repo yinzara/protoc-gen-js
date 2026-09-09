@@ -24,7 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         node: ['18', '20', '22', '24', '26']
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest]
+        # TEMPORARY (4.0.1 only): upstream protobuf-javascript v4.0.1 shipped
+        # without protobuf-javascript-4.0.1-win64.zip, so the win-x64 native
+        # leg is dropped for this release. Restore `windows-latest` in `os` and
+        # the matching include entry below (target win-x64, ext '.exe') when
+        # bumping to 4.0.2.
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest]
         include:
           - os: ubuntu-latest
             target: linux-x64
@@ -38,9 +43,7 @@ jobs:
           - os: macos-latest
             target: darwin-arm64
             ext: ''
-          - os: windows-latest
-            target: win-x64
-            ext: '.exe'
+          # TEMPORARY (4.0.1 only): win-x64 leg removed — see note above.
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
