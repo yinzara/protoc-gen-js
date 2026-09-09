@@ -15,6 +15,7 @@
 Network Trash Folder
 Temporary Items
 .apdisk
+.omc
 
 # Windows
 #
@@ -53,3 +54,7 @@ pnpm-debug.log*
 # Downloaded binaries
 bin/protoc-gen-js*
 test/*.js
+!test/proxy-server.js
+
+# Gemini CLI working files (written by the ci-runner-maintenance workflow)
+.gemini/

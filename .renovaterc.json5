@@ -2,25 +2,64 @@
   "onboarding": false,
   "requireConfig": false,
   "branchPrefix": "renovate/",
-  "baseBranches": ["master"],
+  "baseBranches": ["main"],
   "prCreation": "not-pending",
   "branchTopic": "{{{depNameSanitized}}}-{{{newMajor}}}{{#if isPatch}}-{{{newMinor}}}{{/if}}-x{{#if isLockfileUpdate}}-lockfile{{/if}}",
+  // Every update automerges once branch protection's "all tests pass" check is
+  // green (GitHub native auto-merge, squash). The full Test and Publish matrix
+  // is the gate; nothing merges red.
+  "automerge": true,
+  "platformAutomerge": true,
+  "automergeStrategy": "squash",
+  // Treat the package's own top-level "version" field as if it were a
+  // dependency on google-protobuf. When google-protobuf publishes a new
+  // version Renovate rewrites this line in the same PR as the devDependency
+  // bump - no post-upgrade shell command needed - and the publish workflow's
+  // "gate" job then cuts a release because the new version is not yet on npm.
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": [
+        "\"name\": \"protoc-gen-js\",\\s*\"version\": \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "google-protobuf",
+      "datasourceTemplate": "npm"
+    },
+    {
+      // Bump *plain* GitHub-hosted runner labels in the workflow matrices, e.g.
+      // "macos-16" or "ubuntu-26.04" once GitHub GAs a newer image. The built-in
+      // github-runners manager only scans `runs-on:` values, not matrix `os:`
+      // arrays, hence this regex. Suffixed labels (-intel, -arm) and the
+      // self-updating *-latest aliases are intentionally NOT matched - see
+      // .github/ci-runner-maintenance.md for how those are handled.
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "\"(?<depName>ubuntu|macos|windows)-(?<currentValue>[0-9][0-9.]+)\""
+      ],
+      "datasourceTemplate": "github-runners",
+      "versioningTemplate": "docker"
+    }
+  ],
   "packageRules": [
     {
+      // Keep the package version and the google-protobuf devDependency in
+      // lockstep, in one automerged PR, so releases track upstream automatically.
       "groupName": "google-protobuf",
-      "automerge": true, // automerge changes as we want to this to managed automatically
-      "matchPackagePatterns": ["google-protobuf"],
-      "postUpgradeTasks": {
-        // set the package version to the version of google-protobuf
-        "commands": [
-          "npm version $(cat package.json | grep -m 1 google-protobuf | sed 's/[^.0-9]//g')"
-        ],
-        "fileFilters": [
-          "package.json"
-        ],
-        // only execute once per branch
-        "executionMode": "branch"
-      }
+      "matchPackageNames": ["google-protobuf"],
+      "automerge": true
+    },
+    {
+      // Never even open a major-bump PR for undici or fflate while the engine
+      // floor is Node 18 (see package.json "engines"). undici >= 7 requires
+      // Node >= 20.18 and, with engineStrict, breaks `npm ci` on the Node 18 CI
+      // legs; a fflate major could break zip extraction. Minor / patch updates
+      // (including security fixes) still flow and automerge. Re-enable only when
+      // the Node floor moves to 20+.
+      "matchPackageNames": ["undici", "fflate"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }

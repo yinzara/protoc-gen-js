@@ -1,8 +1,17 @@
 {
   "name": "protoc-gen-js",
-  "version": "3.21.4-4",
+  "version": "4.0.0",
   "description": "A protoc-gen-js binary for npm.",
   "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "cli.js",
+    "post-install.js",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "protoc-gen-js": "cli.js"
   },
@@ -18,9 +27,17 @@
     "postpublish": "git tag -f v$(cat package.json | grep -m 1 version | sed 's/[^.0-9]//g') && git push --tags"
   },
   "dependencies": {
-    "adm-zip": "0.5.10"
+    "fflate": "^0.8.3"
+  },
+  "optionalDependencies": {
+    "undici": "^6.28.1"
+  },
+  "engineStrict": true,
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
-    "google-protobuf": "3.21.4"
+    "@types/node": "18.19.130",
+    "google-protobuf": "4.0.0"
   }
 }

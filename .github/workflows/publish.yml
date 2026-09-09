@@ -1,22 +1,253 @@
-name: Publish Package to npmjs
+name: Test and Publish
 on:
+  pull_request:
   push:
     branches:
-    - master
+    - main
+  # Manual / API dispatch so a bot-authored PR (whose GITHUB_TOKEN push does not
+  # trigger `pull_request`) can still get the required matrix run on its branch.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded runs on feature branches, never on main.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  publish:
+  # Full end-to-end test on every target that can actually execute the plugin
+  # on a GitHub-hosted runner, across every supported Node major: install the
+  # package (which runs post-install.js for the runner's real platform/arch),
+  # then drive a real protoc code-gen.
+  test-native:
+    name: test ${{ matrix.target }} - node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22', '24', '26']
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            ext: ''
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            ext: ''
+          - os: macos-15-intel
+            target: darwin-x64
+            ext: ''
+          - os: macos-latest
+            target: darwin-arm64
+            ext: ''
+          - os: windows-latest
+            target: win-x64
+            ext: '.exe'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install (runs post-install.js download + extract)
+        run: npm ci
+      - name: Check for protoc-gen-js
+        shell: bash
+        run: |
+          if [ ! -f "bin/protoc-gen-js${{ matrix.ext }}" ]; then
+            echo "File not found: bin/protoc-gen-js${{ matrix.ext }}"
+            exit 1
+          fi
+      # setup-protoc queries the GitHub API for release metadata; without a
+      # token it shares the 60 req/h unauthenticated pool per runner IP and
+      # gets rate-limited across the matrix. The automatic per-run GITHUB_TOKEN
+      # is authenticated (5000 req/h) and needs no extra setup.
+      - name: Install Protoc
+        uses: step-security/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test protoc generation
+        run: protoc --js_out=import_style=commonjs:. --plugin=protoc-gen-js=bin/protoc-gen-js${{ matrix.ext }} test/example.proto
+      - name: Check for generated JS file
+        shell: bash
+        run: |
+          if [ ! -f test/example_pb.js ]; then
+            echo "JS File not generated: test/example_pb.js"
+            exit 1
+          fi
+
+  # Targets that are supported by the package but cannot run on a hosted
+  # runner. We still exercise the real download + fflate extraction path via
+  # the PROTOC_GEN_JS_PLATFORM / PROTOC_GEN_JS_ARCH overrides, on every
+  # supported Node major, and assert the extracted binary format.
+  test-cross:
+    name: verify ${{ matrix.target }} - node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22', '24', '26']
+        target: [linux-ia32, linux-ppc64, linux-s390x, win32-ia32]
+        include:
+          - target: linux-ia32
+            platform: linux
+            arch: ia32
+            expect: 'ELF 32-bit'
+          - target: linux-ppc64
+            platform: linux
+            arch: ppc64
+            expect: 'PowerPC'
+          - target: linux-s390x
+            platform: linux
+            arch: s390x
+            expect: 'IBM S/390'
+          - target: win32-ia32
+            platform: win32
+            arch: ia32
+            expect: 'PE32'
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install deps only
+        run: npm ci --ignore-scripts
+      - name: Download + extract ${{ matrix.platform }}/${{ matrix.arch }}
+        env:
+          PROTOC_GEN_JS_PLATFORM: ${{ matrix.platform }}
+          PROTOC_GEN_JS_ARCH: ${{ matrix.arch }}
+        run: node post-install.js
+      - name: Assert extracted binary format
+        run: |
+          bin=$(ls bin/protoc-gen-js* | head -1)
+          echo "Extracted: $bin"
+          file "$bin"
+          test -s "$bin"
+          file "$bin" | grep -q '${{ matrix.expect }}'
+
+  # Exercises the HTTP(S) proxy code path in post-install.js for real: the tiny
+  # CONNECT proxy in test/proxy-server.js is the only route to the internet
+  # the download can take, and its log is asserted to contain the GitHub asset
+  # host. Linux x64 only (the proxy logic is platform-independent) but across
+  # every supported Node major. The two extra legs set NODE_USE_ENV_PROXY=1 so
+  # Node's own native env-proxy support for fetch (v24+) is covered as well as
+  # the undici EnvHttpProxyAgent fallback used everywhere else.
+  test-proxy:
+    name: proxy - node ${{ matrix.node }}${{ matrix.native_env_proxy == '1' && ' (native)' || '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { node: '18', native_env_proxy: '' }
+          - { node: '20', native_env_proxy: '' }
+          - { node: '22', native_env_proxy: '' }
+          - { node: '24', native_env_proxy: '' }
+          - { node: '26', native_env_proxy: '' }
+          - { node: '24', native_env_proxy: '1' }
+          - { node: '26', native_env_proxy: '1' }
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Start a local HTTP proxy
+        env:
+          PROXY_PORT: '8899'
+          PROXY_LOG: ${{ runner.temp }}/proxy.log
+        run: |
+          : > "$PROXY_LOG"
+          nohup node test/proxy-server.js > "${RUNNER_TEMP}/proxy.out" 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS -x "http://127.0.0.1:${PROXY_PORT}" -o /dev/null https://github.com; then
+              echo "proxy is up on :${PROXY_PORT}"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "proxy failed to start:"; cat "${RUNNER_TEMP}/proxy.out" || true
+          exit 1
+      - name: Install deps only
+        run: npm ci --ignore-scripts
+      - name: Download through the proxy
+        env:
+          HTTP_PROXY: http://127.0.0.1:8899
+          HTTPS_PROXY: http://127.0.0.1:8899
+          NO_PROXY: ''
+          NODE_USE_ENV_PROXY: ${{ matrix.native_env_proxy }}
+        run: node post-install.js
+      - name: Assert the download really went through the proxy
+        run: |
+          test -s bin/protoc-gen-js
+          echo "--- proxy log ---"
+          cat "${RUNNER_TEMP}/proxy.log" || true
+          # If post-install.js ignored the proxy env vars the log would be
+          # empty and this grep fails the job.
+          grep -E "github\.com|githubusercontent\.com" "${RUNNER_TEMP}/proxy.log"
+
+  # Single required status check for branch protection - green only when every
+  # leg of all test matrices passed.
+  all-tests-pass:
+    name: all tests pass
+    if: always()
+    needs: [test-native, test-cross, test-proxy]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Verify matrix results
+        run: |
+          echo "test-native: ${{ needs.test-native.result }}"
+          echo "test-cross:  ${{ needs.test-cross.result }}"
+          echo "test-proxy:  ${{ needs.test-proxy.result }}"
+          test "${{ needs.test-native.result }}" = "success" \
+            && test "${{ needs.test-cross.result }}" = "success" \
+            && test "${{ needs.test-proxy.result }}" = "success"
+
+  # Runs only after a merge/push to main (never on pull requests). Publishes
+  # only when package.json "version" is not already on npm. Renovate bumps that
+  # version only when google-protobuf changes (see the google-protobuf rule in
+  # .renovaterc.json5), so merges that only update other dependencies run the
+  # full test matrix and stop here without cutting a release.
+  gate:
+    needs: [all-tests-pass]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '18.x'
+          node-version: '24'
+      - name: Is this version already published?
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "protoc-gen-js@$VERSION" version > /dev/null 2>&1; then
+            echo "protoc-gen-js@$VERSION is already published - skipping release."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "protoc-gen-js@$VERSION is not published yet - releasing."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: [gate]
+    if: needs.gate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: npm ci
       - name: Check for protoc-gen-js
         run: |
@@ -24,24 +255,10 @@ jobs:
             echo "File not found: bin/protoc-gen-js"
             exit 1
           fi
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.RENOVATE_TOKEN }}
-      - name: Test protoc generation
-        run: |
-          protoc --js_out=import_style=commonjs:. --plugin=protoc-gen-js=bin/protoc-gen-js test/example.proto
-      - name: Check for generated JS file
-        run: |
-          if [ ! -f test/example_pb.js ]; then
-            echo "JS File not generated: test/example_pb.js"
-            exit 1
-          fi
       - name: setup git config
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm
+        run: npm publish --provenance --access public
       - run: echo "🍏 This job's status is ${{ job.status }}."
