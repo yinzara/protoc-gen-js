@@ -66,12 +66,14 @@ jobs:
           # transcript is downloadable from the run - on success the action
           # writes nothing to the step log.
           upload_artifacts: 'true'
+          # `model` must be an object (the CLI rejects the string form). No
+          # `tools` allow-list: restricting `tools.core` broke the CLI's own
+          # built-ins (e.g. `update_topic`, glob/grep) - the job is --yolo in a
+          # trusted CI checkout with a scoped prompt, and any PR it opens is
+          # gated by branch protection + review anyway.
           settings: |
             {
-              "model": "gemini-3.5-flash-lite",
-              "tools": {
-                "core": ["run_shell_command", "read_file", "read_many_files", "write_file", "replace", "web_fetch"]
-              }
+              "model": { "name": "gemini-3.5-flash-lite" }
             }
           prompt: |-
             You maintain the CI runner labels AND this workflow's own Gemini
