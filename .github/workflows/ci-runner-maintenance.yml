@@ -56,25 +56,16 @@ jobs:
           GEMINI_CLI_TRUST_WORKSPACE: 'true'
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          # Model choice is about free-tier requests-per-day, not capability:
-          # one agentic pass makes many API calls. The 3.x *-flash-lite models
-          # allow ~500 req/day free; 2.5-flash-lite is only ~20/day. Pinned in
-          # both places because the `gemini_model` input alone has not stuck
-          # (a run pinned to 2.5-flash was billed against 3.5-flash's quota).
+          # Model choice is about free-tier request budget, not capability: one
+          # agentic pass makes many API calls, and a 3.x-or-newer *-flash-lite
+          # model allows ~500 req/day free vs ~20/day for 2.5-flash-lite or
+          # plain flash. This input is the only model knob we need - it exports
+          # GEMINI_MODEL, which the CLI reads.
           gemini_model: gemini-3.5-flash-lite
           # Upload gemini-artifacts/{stdout,stderr,telemetry}.log so the full
           # transcript is downloadable from the run - on success the action
           # writes nothing to the step log.
           upload_artifacts: 'true'
-          # `model` must be an object (the CLI rejects the string form). No
-          # `tools` allow-list: restricting `tools.core` broke the CLI's own
-          # built-ins (e.g. `update_topic`, glob/grep) - the job is --yolo in a
-          # trusted CI checkout with a scoped prompt, and any PR it opens is
-          # gated by branch protection + review anyway.
-          settings: |
-            {
-              "model": { "name": "gemini-3.5-flash-lite" }
-            }
           prompt: |-
             You maintain the CI runner labels AND this workflow's own Gemini
             model pin for this repository.
@@ -89,12 +80,11 @@ jobs:
                start, and web_fetch on
                https://github.com/actions/runner-images releases for deprecation
                notices. Be conservative: a transient outage is not a removal.
-            3. Gemini model pin: check whether the model in
-               .github/workflows/ci-runner-maintenance.yml (the `gemini_model`
-               input and the `"model"` field in `settings`) is still current
-               and supported (web_fetch https://ai.google.dev/gemini-api/docs/models).
-               If it is deprecated or removed, change BOTH occurrences to a
-               current 3.x-or-newer *-flash-lite model with a large free-tier
+            3. Gemini model pin: check whether the `gemini_model` value in
+               .github/workflows/ci-runner-maintenance.yml is still a current,
+               supported model (web_fetch https://ai.google.dev/gemini-api/docs/models).
+               If it is deprecated or removed, change it to a current
+               3.x-or-newer *-flash-lite model with a large free-tier
                requests-per-day limit (~500/day). Do not use 2.5-flash-lite
                (~20/day) or any flash / pro / ultra model.
             4. If nothing needs changing, print "no change needed" and exit
