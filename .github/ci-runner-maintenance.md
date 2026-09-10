@@ -83,17 +83,17 @@ matrix + `all-tests-pass` validate the PR.
 
 ## The Gemini model pin
 
-`.github/workflows/ci-runner-maintenance.yml` pins the model in **two** places -
-the `gemini_model:` input and the `"model"` field inside `settings` (the input
-alone has not reliably stuck). The choice is driven by **free-tier
-requests-per-day**, not capability - one agentic pass makes many API calls:
+`.github/workflows/ci-runner-maintenance.yml` pins the model via the single
+`gemini_model:` input (the action exports it as `GEMINI_MODEL`, which the CLI
+reads). The choice is driven by **free-tier requests-per-day**, not capability -
+one agentic pass makes many API calls:
 
 - Use a current **3.x-or-newer `*-flash-lite`** model (e.g. `gemini-3.5-flash-lite`),
   which allows ~500 requests/day free.
 - Do **not** use `gemini-2.5-flash-lite` (~20/day), nor any `flash` / `pro` /
   `ultra` model.
 
-When Google deprecates the pinned model, update **both** occurrences to the
+When Google deprecates the pinned model, update the `gemini_model:` value to the
 newest such model listed at <https://ai.google.dev/gemini-api/docs/models>. The
 scheduled job checks this itself and includes the bump in its PR; a human only
 needs to act if the model is removed outright (the run then fails at the "Run
