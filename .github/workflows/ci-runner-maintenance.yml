@@ -48,6 +48,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Headless CI: mark the checkout as a trusted folder, otherwise the
+          # Gemini CLI downgrades out of --yolo ("Approval mode overridden to
+          # default because the current folder is not trusted") and can't run
+          # any tool calls.
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           gemini_model: gemini-2.5-flash
