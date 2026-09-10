@@ -8,6 +8,9 @@ on:
   # trigger `pull_request`) can still get the required matrix run on its branch.
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # Cancel superseded runs on feature branches, never on main.
