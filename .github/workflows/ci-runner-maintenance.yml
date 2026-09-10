@@ -56,18 +56,19 @@ jobs:
           GEMINI_CLI_TRUST_WORKSPACE: 'true'
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          # flash-lite has the largest free-tier requests-per-day budget, which
-          # matters because one agentic pass makes many API calls. Pinned in
+          # Model choice is about free-tier requests-per-day, not capability:
+          # one agentic pass makes many API calls. The 3.x *-flash-lite models
+          # allow ~500 req/day free; 2.5-flash-lite is only ~20/day. Pinned in
           # both places because the `gemini_model` input alone has not stuck
           # (a run pinned to 2.5-flash was billed against 3.5-flash's quota).
-          gemini_model: gemini-2.5-flash-lite
+          gemini_model: gemini-3.5-flash-lite
           # Upload gemini-artifacts/{stdout,stderr,telemetry}.log so the full
           # transcript is downloadable from the run - on success the action
           # writes nothing to the step log.
           upload_artifacts: 'true'
           settings: |
             {
-              "model": "gemini-2.5-flash-lite",
+              "model": "gemini-3.5-flash-lite",
               "tools": {
                 "core": ["run_shell_command", "read_file", "read_many_files", "write_file", "replace", "web_fetch"]
               }
@@ -90,9 +91,10 @@ jobs:
                .github/workflows/ci-runner-maintenance.yml (the `gemini_model`
                input and the `"model"` field in `settings`) is still current
                and supported (web_fetch https://ai.google.dev/gemini-api/docs/models).
-               If it is deprecated or removed, change BOTH occurrences to the
-               newest stable *flash-lite* model - flash-lite has the largest
-               free-tier request budget; do not switch to flash/pro/ultra.
+               If it is deprecated or removed, change BOTH occurrences to a
+               current 3.x-or-newer *-flash-lite model with a large free-tier
+               requests-per-day limit (~500/day). Do not use 2.5-flash-lite
+               (~20/day) or any flash / pro / ultra model.
             4. If nothing needs changing, print "no change needed" and exit
                without creating a branch, commit, or PR.
             5. If a change is needed, apply the smallest fix on a new branch
