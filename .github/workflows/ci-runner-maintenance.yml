@@ -75,18 +75,22 @@ jobs:
                and .github/workflows/ci-runner-maintenance.yml.
             2. Runner labels: decide whether any GitHub-hosted runner label used
                in publish.yml (in strategy.matrix.os lists, matrix.include rows,
-               or runs-on:) is deprecated or has been removed. Use `gh` to
-               inspect recent runs of "Test and Publish" for jobs that failed to
-               start, and web_fetch on
-               https://github.com/actions/runner-images releases for deprecation
-               notices. Be conservative: a transient outage is not a removal.
-            3. Gemini model pin: check whether the `gemini_model` value in
-               .github/workflows/ci-runner-maintenance.yml is still a current,
-               supported model (web_fetch https://ai.google.dev/gemini-api/docs/models).
-               If it is deprecated or removed, change it to a current
+               or runs-on:) has been removed or renamed. The authoritative
+               signal is `gh`: use `gh run list`/`gh run view` on the last few
+               "Test and Publish" runs - a gone label shows up as a matrix job
+               that never starts or a run that fails immediately with a "no
+               runner"/"label not found" error. Do not rely on web pages; if
+               you have no other evidence, assume nothing changed. A transient
+               outage is not a removal.
+            3. Gemini model pin: only act here if a recent "CI runner
+               maintenance" run (check with `gh`) failed at the "Run Gemini
+               CLI" step with a model-not-found / deprecation error. If so,
+               change the `gemini_model` value in
+               .github/workflows/ci-runner-maintenance.yml to a current
                3.x-or-newer *-flash-lite model with a large free-tier
-               requests-per-day limit (~500/day). Do not use 2.5-flash-lite
-               (~20/day) or any flash / pro / ultra model.
+               requests-per-day limit (~500/day) - never 2.5-flash-lite
+               (~20/day) or any flash / pro / ultra model. Otherwise leave it:
+               this run working means the model is fine.
             4. If nothing needs changing, print "no change needed" and exit
                without creating a branch, commit, or PR.
             5. If a change is needed, apply the smallest fix on a new branch

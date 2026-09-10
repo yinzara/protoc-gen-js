@@ -93,13 +93,13 @@ one agentic pass makes many API calls:
 - Do **not** use `gemini-2.5-flash-lite` (~20/day), nor any `flash` / `pro` /
   `ultra` model.
 
-When Google deprecates the pinned model, update the `gemini_model:` value to the
+When Google retires the pinned model, update the `gemini_model:` value to the
 newest such model listed at <https://ai.google.dev/gemini-api/docs/models>. The
-scheduled job checks this itself and includes the bump in its PR; a human only
-needs to act if the model is removed outright (the run then fails at the "Run
-Gemini CLI" step with a quota/`404` error). A `429 ... exhausted your daily
-quota` is not a model problem - the request budget is used up; it resets daily
-and the monthly schedule normally leaves plenty of headroom.
+scheduled job only touches this if one of *its own* recent runs failed at the
+"Run Gemini CLI" step with a model-not-found error - it does not fetch the
+models page (that was flaky). A `429 ... exhausted your daily quota` is not a
+model problem: the request budget is used up; it resets daily and the monthly
+schedule normally leaves plenty of headroom.
 
 ## Running this as an agent
 
