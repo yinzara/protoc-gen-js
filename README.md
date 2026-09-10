@@ -1,6 +1,6 @@
 # protoc-gen-js binary for npm
 
-[![Test and Publish](https://github.com/yinzara/protoc-gen-js/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/yinzara/protoc-gen-js/actions/workflows/publish.yml)
+[![Test and Publish](https://github.com/yinzara/protoc-gen-js/actions/workflows/publish.yml/badge.svg?branch=main&event=push)](https://github.com/yinzara/protoc-gen-js/actions/workflows/publish.yml)
 
 This package provides the official [js protoc plugin](https://github.com/protocolbuffers/protobuf-javascript), downloaded from [protobuf-javascript releases](https://github.com/protocolbuffers/protobuf-javascript/releases).
 
