@@ -44,6 +44,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Ask Gemini to check and, if needed, fix runner labels
+        id: gemini
         uses: google-github-actions/run-gemini-cli@v0.1.22
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,6 +57,10 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           gemini_model: gemini-2.5-flash
+          # Upload gemini-artifacts/{stdout,stderr,telemetry}.log so the full
+          # transcript is downloadable from the run - on success the action
+          # writes nothing to the step log.
+          upload_artifacts: 'true'
           settings: |
             {
               "tools": {
@@ -104,3 +109,25 @@ jobs:
                merge manually, do not wait; GitHub merges the PR once the
                required "all tests pass" check succeeds, or leaves it open if
                it fails.
+
+      - name: Show Gemini's decision
+        if: always()
+        env:
+          GEMINI_RESPONSE: ${{ steps.gemini.outputs.summary }}
+          GEMINI_ERRORS: ${{ steps.gemini.outputs.error }}
+        run: |
+          echo "::group::Gemini response"
+          printf '%s\n' "${GEMINI_RESPONSE:-(empty)}"
+          echo "::endgroup::"
+          {
+            echo "### Gemini runner-maintenance decision"
+            echo
+            echo '```'
+            printf '%s\n' "${GEMINI_RESPONSE:-(empty)}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${GEMINI_ERRORS:-}" ]; then
+            echo "::group::Gemini errors"
+            printf '%s\n' "$GEMINI_ERRORS"
+            echo "::endgroup::"
+          fi
