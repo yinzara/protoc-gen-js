@@ -83,16 +83,20 @@ matrix + `all-tests-pass` validate the PR.
 
 ## The Gemini model pin
 
-`.github/workflows/ci-runner-maintenance.yml` pins `gemini_model:` to a specific
-model (currently a `gemini-2.5-flash`-class model). Flash is chosen so the
-monthly run stays inside the Gemini API **free tier** - do not switch it to a
-`pro`/`ultra` model.
+`.github/workflows/ci-runner-maintenance.yml` pins the model in **two** places -
+the `gemini_model:` input and the `"model"` field inside `settings` (the input
+alone has not reliably stuck). It uses a **flash-lite** model: one agentic pass
+makes many API calls, and flash-lite has the largest free-tier
+requests-per-day budget. Do not switch it to a `flash` / `pro` / `ultra` model.
 
-When Google deprecates that model, update the single `gemini_model:` value to
-the newest stable *flash* model listed at
+When Google deprecates that model, update **both** occurrences to the newest
+stable *flash-lite* model listed at
 <https://ai.google.dev/gemini-api/docs/models>. The scheduled job checks this
 itself and includes the bump in its PR; a human only needs to act if the model
-is removed outright (the workflow run then fails at the "Run Gemini CLI" step).
+is removed outright (the run then fails at the "Run Gemini CLI" step with a
+quota/`404` error). A `429 ... exhausted your daily quota` is not a model
+problem - it just means the free-tier request budget is used up; it resets
+daily and the monthly schedule normally leaves plenty of headroom.
 
 ## Running this as an agent
 
