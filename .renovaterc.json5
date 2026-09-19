@@ -47,7 +47,17 @@
       // lockstep, in one automerged PR, so releases track upstream automatically.
       "groupName": "google-protobuf",
       "matchPackageNames": ["google-protobuf"],
-      "automerge": true
+      "automerge": true,
+      // The regex manager above edits package.json's own "version" but Renovate
+      // does not refresh package-lock.json for it, so `npm ci` fails on the PR
+      // (lock out of sync). Regenerate the lock file after the upgrade. The
+      // command must be allowlisted via RENOVATE_ALLOWED_COMMANDS in
+      // .github/workflows/renovatebot.yml.
+      "postUpgradeTasks": {
+        "commands": ["npm install --package-lock-only --ignore-scripts"],
+        "fileFilters": ["package-lock.json"],
+        "executionMode": "branch"
+      }
     },
     {
       // Never even open a major-bump PR for undici or fflate while the engine

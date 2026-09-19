@@ -30,3 +30,6 @@ jobs:
           # already carries a Renovate config, so skip onboarding entirely.
           RENOVATE_ONBOARDING: 'false'
 
+          # Global-only: permit the postUpgradeTasks command that regenerates
+          # package-lock.json for the google-protobuf / package version bump.
+          RENOVATE_ALLOWED_COMMANDS: '["^npm install --package-lock-only --ignore-scripts$"]'
