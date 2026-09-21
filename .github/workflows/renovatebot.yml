@@ -16,7 +16,7 @@ jobs:
         id: generate_token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.RENOVATE_APP_ID }}
+          client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
 
       - name: Run Self-hosted Renovate
